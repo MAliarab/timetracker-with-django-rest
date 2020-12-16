@@ -1,21 +1,30 @@
 from django.shortcuts import render
 
 # Create your views here.
-
-from django.contrib.auth.models import User, Group
+import json
+from django.forms.models import model_to_dict
+from django.contrib.auth.models import User
+from account.models import UserProfile
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from django.http import HttpResponse
 from account.serializers import (
     UserRegisterSerializer,
     UserLoginSerializer,
     UserActiveSerializer,
     UserDeleteSerializer,
-    UserUpdateSerializer)
+    UserUpdateSerializer,
+    ListUsersSerializer,
+    UserDetailSerializer)
 from rest_framework.views import APIView
+from django.core import serializers
 from rest_framework.generics import (
     CreateAPIView,
     DestroyAPIView,
-    UpdateAPIView
+    UpdateAPIView,
+    ListAPIView,
+    RetrieveAPIView,
+    ListCreateAPIView
 )
 
 class UserRegisterView(CreateAPIView):
@@ -51,7 +60,6 @@ class UserActiveView(APIView):
 class UserDeleteView(APIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = UserDeleteSerializer
-    queryset = User.objects.all()
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -68,5 +76,45 @@ class UserUpdateView(APIView):
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+
+class ListUsersView(APIView):
+    permissions_classes = [permissions.AllowAny]
+    serializer_class = ListUsersSerializer
+    
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            users = User.objects.filter(is_staff=False).values('username','first_name','last_name','is_active','is_superuser')
+            users_list = list(users)
+
+            for user in users_list:
+                userprofile = UserProfile.objects.filter(user__username=user['username'])
+                
+                if userprofile.exists():
+                    user['is_working'] = userprofile.first().is_working
+            return Response(list(users), status=status.HTTP_200_OK) 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+
+class UserDetailView(APIView):
+    permissions_classes = [permissions.AllowAny]
+    serializer_class = UserDetailSerializer
+    
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            users = User.objects.filter(is_staff=False,username=request.data.get('username',None)).values(
+                'username',
+                'first_name',
+                'last_name',
+                'is_active',
+                'is_superuser',
+            )
+            users_list = list(users)
+            for user in users_list:
+                userprofile = UserProfile.objects.filter(user__username=user['username'])  
+                if userprofile.exists():
+                    user['is_working'] = userprofile.first().is_working
+            return Response(list(users), status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 

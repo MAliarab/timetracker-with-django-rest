@@ -6,8 +6,10 @@ from rest_framework.response import Response
 from record.serializers import (
     TimeRcordingManualSerializer,
     ProjectCreateSeralizer,
-    AddUserToProjectSerializer
+    AddUserToProjectSerializer,
+    TimeRcordingAutoSerializer
 )
+
 class TimeRecoringManualView(APIView):
 
     serializer_class = TimeRcordingManualSerializer
@@ -19,6 +21,19 @@ class TimeRecoringManualView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class TimeRecoringAutoView(APIView):
+
+    serializer_class = TimeRcordingAutoSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ProjectCreateView(APIView):
     

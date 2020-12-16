@@ -95,7 +95,6 @@ class UserLoginSerializer(serializers.ModelSerializer):
         
         return data
 
-
 class UserActiveSerializer(serializers.ModelSerializer):
     
     token = serializers.CharField(
@@ -158,8 +157,8 @@ class UserDeleteSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data['token'])
-        user = User.objects.filter(username=data['username'])
+        token = Token.objects.filter(key=data.get('token',None))
+        user = User.objects.filter(username=data.get('username',None))
         
         if token.exists():
             token_obj = token.first()
@@ -174,8 +173,8 @@ class UserDeleteSerializer(serializers.ModelSerializer):
         
         try:
             user_obj.delete()
-        except:
-            raise serializers.ValidationError("databse error")
+        except Exception as e:
+            raise serializers.ValidationError(e)
         return data
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -251,4 +250,54 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         new_data['token'] = token_obj.key
         return new_data
 
+class ListUsersSerializer(serializers.ModelSerializer):
+
+    token = serializers.CharField(
+        required=True,
+    )
+
+    class Meta:
+        model = User
+        fields = ['token']
+
+    def validate(self,data):
+
+        token = Token.objects.filter(key=data.get('token',None))
+
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        if not token_obj.user.is_superuser:
+            raise serializers.ValidationError("you have not admin access")
+        
+        return data
+
+class UserDetailSerializer(serializers.ModelSerializer):
+
+    token = serializers.CharField(
+        required=True,
+    )
+
+    username = serializers.CharField(
+        required=True,
+    )
+
+    class Meta:
+        model = User
+        fields = ['token','username']
+
+    def validate(self,data):
+
+        token = Token.objects.filter(key=data.get('token',None))
+        username = data.get('username', None)
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
+
+            raise serializers.ValidationError("you have not access to this action")
+        
+        return data
 

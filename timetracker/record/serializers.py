@@ -3,7 +3,7 @@ from record.models import Time, Project, ProjectUser
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework.validators import UniqueValidator
-import jdatetime, pytz
+import datetime, pytz, jdatetime
 
 class TimeRcordingManualSerializer(serializers.ModelSerializer):
 
@@ -54,7 +54,7 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
         description = data.get('description', None)
         duration = end_time - start_time
         tz = pytz.timezone('Asia/Tehran')
-        date = jdatetime.datetime.now(tz).date()
+        date = datetime.datetime.now(tz).date()
 
         
         if token.exists():
@@ -77,15 +77,17 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
             Time.objects.create(
                 project=project_obj,
                 user=token_obj.user,
-                date=str(date),
-                start_time=str(start_time),
-                end_time=str(end_time),
+                date=(date),
+                start_time=(start_time),
+                end_time=(end_time),
                 duration=duration,
                 description=description
             )
         except Exception as e:
             raise serializers.ValidationError(e)
-
+        
+        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
+        data['end_time'] = jdatetime.datetime.fromgregorian(datetime=end_time)
         return data
 
 class TimeRcordingAutoSerializer(serializers.ModelSerializer):
@@ -98,28 +100,13 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         required=True,
     )
 
-    # user = serializers.CharField(
-    #     required=True,
-    # )
-
     start_time = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M:%S",
-        required=True,
-        )
-
-    end_time = serializers.DateTimeField(
-        format="%Y-%m-%d %H:%M:%S",
-        required=True,
-        )
-
-    description = serializers.CharField(
-        required=True,
+        required=False,
     )
-
     
     class Meta:
         model = Time
-        fields = ['token', 'project', 'start_time', 'end_time','description']
+        fields = ['token', 'project','start_time']
 
     
     def validate(self, data):
@@ -131,14 +118,9 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
             name=data.get('project', None)
         )
 
-        
-        start_time = data.get('start_time', None)
-        end_time = data.get('end_time', None)
-        description = data.get('description', None)
-        duration = end_time - start_time
         tz = pytz.timezone('Asia/Tehran')
-        date = jdatetime.datetime.now(tz).date()
-
+        date = datetime.datetime.now(tz).date()
+        start_time = datetime.datetime.now(tz)
         
         if token.exists():
             token_obj = token.first()
@@ -155,20 +137,20 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         if not ProjectUser.objects.filter(project=project_obj, user=token_obj.user).exists():
             raise serializers.ValidationError("this user is not a member of the project")
         
-
+        
         try:
             Time.objects.create(
                 project=project_obj,
                 user=token_obj.user,
-                date=str(date),
-                start_time=str(start_time),
-                end_time=str(end_time),
-                duration=duration,
-                description=description
+                date=(date),
+                start_time=(start_time),
             )
+
+            
         except Exception as e:
             raise serializers.ValidationError(e)
-
+        
+        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
         return data
 
 
@@ -206,7 +188,7 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         name = data.get('name', None)
         category = data.get('category', None)
         tz = pytz.timezone('Asia/Tehran')
-        start_time = jdatetime.datetime.now(tz)
+        start_time = datetime.datetime.now(tz)
 
         if token.exists():
             token_obj = token.first()
@@ -235,7 +217,8 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         except Exception as e:
             print('db error')
             raise serializers.ValidationError(e)
-        data['start_time'] = start_time
+        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
+        
         return data
 
 
@@ -301,3 +284,4 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
 
 
         return data
+
