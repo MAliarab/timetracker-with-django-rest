@@ -79,7 +79,7 @@ class UserUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class ListUsersView(APIView):
-    permissions_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny]
     serializer_class = ListUsersSerializer
     
     def post(self,request):

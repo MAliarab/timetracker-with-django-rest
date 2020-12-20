@@ -25,7 +25,7 @@ class Time(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return self.project.name + " - " + self.user.username + " - " + str(self.start_time)
+        return str(self.id) + " - " + self.project.name + " - " + self.user.username + " - " + str(self.start_time)
     
 
 class ProjectUser(models.Model):
