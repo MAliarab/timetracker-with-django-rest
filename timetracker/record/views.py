@@ -16,7 +16,9 @@ from record.serializers import (
     ListTimesSerializer,
     TimeDeleteSerializer,
     TimeUpdateSerializer,
-    ProjectDeleteSerializer
+    ProjectDeleteSerializer,
+    ProjectUpdateSerializer,
+    ProjectDetailSerializer
 )
 
 
@@ -167,3 +169,27 @@ class ProjectDeleteView(APIView):
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ProjectUpdateView(APIView):
+
+    serializer_class = ProjectUpdateSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ProjectDetailView(APIView):
+
+    serializer_class = ProjectDetailSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            project = Project.objects.filter(name=request.data.get('project',None)).values('name', 'category', 'start_time', 'end_time')
+            return Response(list(project), status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 

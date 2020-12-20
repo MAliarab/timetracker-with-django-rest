@@ -568,4 +568,111 @@ class ProjectDeleteSerializer(serializers.ModelSerializer):
 
         return data
     
+class ProjectUpdateSerializer(serializers.ModelSerializer):
+
+    token = serializers.CharField(
+        required=True,
+    )
+
+    project = serializers.CharField(
+        required=True,
+    )
+
+    new_project = serializers.CharField(
+        required=False,
+    )
+
+    category = serializers.CharField(
+        required=False,
+    )
+
+    start_time = serializers.DateTimeField(
+        required=False,
+    )
+
+    end_time = serializers.DateTimeField(
+        required=False,
+    )
+    
+    
+    class Meta:
+        model = Project
+        fields = ['token','project','new_project','category','start_time','end_time']
+
+    def validate(self,data):
+
+        token = Token.objects.filter(key=data.get('token',None))
+        project = Project.objects.filter(name=data.get('project', None))
+        new_project = data.get('new_project', None)
+        category = data.get('category', None)
+        start_time = data.get('start_time', None)
+        end_time = data.get('end_time', None)
+
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        
+        if not token_obj.user.is_superuser:
+            raise serializers.ValidationError("you have not access")
+
+        if project.exists():
+            project_obj = project.first()
+        else:
+            raise serializers.ValidationError("project is not exist")
+        
+        if new_project:
+            project_obj.name = new_project
+        
+        if category:
+            project_obj.category = category
+        
+        if start_time:
+            project_obj.start_time = start_time
+        
+        if end_time:
+            project_obj.end_time = end_time
+        
+        
+        try:
+            project_obj.save()
+        except Exception as e:
+            raise serializers.ValidationError(e)
+
+        return data
+    
+class ProjectDetailSerializer(serializers.ModelSerializer):
+
+    token = serializers.CharField(
+        required=True,
+    )
+
+    project = serializers.CharField(
+        required=True,
+    )
+
+    class Meta:
+        model = Project
+        fields = ['token','project']
+
+    def validate(self,data):
+
+        token = Token.objects.filter(key=data.get('token',None))
+        project = Project.objects.filter(name=data.get('project', None))
+
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        if not token_obj.user.is_superuser:
+            raise serializers.ValidationError("you have not access")
+
+        if project.exists():
+            project_obj = project.first()
+        else:
+            raise serializers.ValidationError("project is not exist")
+
+
+        return data
+
 
