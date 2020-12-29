@@ -103,6 +103,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
     start_time = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S",
         required=False,
+        read_only=True
     )
     
     class Meta:
@@ -121,8 +122,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
 
         tz = pytz.timezone('Asia/Tehran')
         date = datetime.datetime.now().date()
-        start_time = datetime.datetime.now()
-        
+        start_time = datetime.datetime.now().replace(microsecond=0)
         
 
         if token.exists():
@@ -180,8 +180,9 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
     )
 
     start_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
         required=False,
-        allow_null=True
+        read_only=True
     )
 
     class Meta:
@@ -197,8 +198,7 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         name = data.get('name', None)
         category = data.get('category', None)
         tz = pytz.timezone('Asia/Tehran')
-        start_time = datetime.datetime.now(tz)
-
+        start_time = datetime.datetime.now(tz).replace(microsecond=0)
         if token.exists():
             token_obj = token.first()
         else:

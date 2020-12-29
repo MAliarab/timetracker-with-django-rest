@@ -1,5 +1,6 @@
 from django.shortcuts import render
-
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 # Create your views here.
 import json
 from django.forms.models import model_to_dict
@@ -24,7 +25,8 @@ from rest_framework.generics import (
     UpdateAPIView,
     ListAPIView,
     RetrieveAPIView,
-    ListCreateAPIView
+    ListCreateAPIView,
+    GenericAPIView
 )
 
 class UserRegisterView(CreateAPIView):
@@ -34,11 +36,18 @@ class UserRegisterView(CreateAPIView):
     permission_classes = [permissions.AllowAny]
         
 
-class UserLoginView(APIView):
+class UserLoginView(GenericAPIView):
     
     permission_classes = [permissions.AllowAny]
     serializer_class = UserLoginSerializer
+    queryset = User.objects.all()
 
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('login successfully.', UserLoginSerializer),
+            400: 'Bad Request'
+        },
+    )
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -46,9 +55,18 @@ class UserLoginView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class UserActiveView(APIView):
+class UserActiveView(GenericAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = UserActiveSerializer
+    queryset = User.objects.all()
+
+    @swagger_auto_schema(
+        operation_description="use 'action=True' for activate and 'action=False' for deactivate",
+        responses={
+            200: openapi.Response('active/deactive successfully' , UserActiveSerializer),
+            400: 'Bad Request'
+        },
+    )
 
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
@@ -57,9 +75,17 @@ class UserActiveView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
-class UserDeleteView(APIView):
+class UserDeleteView(GenericAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = UserDeleteSerializer
+    queryset = User.objects.all()
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('user delete successfully' , UserDeleteSerializer),
+            400: 'Bad Request'
+        },
+    )
+
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -67,9 +93,17 @@ class UserDeleteView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
-class UserUpdateView(APIView):
+class UserUpdateView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = UserUpdateSerializer
+    queryset = User.objects.all()
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('user update successfully' , UserUpdateSerializer),
+            400: 'Bad Request'
+        },
+    )
+
     def post(self,request):
         
         serializer = self.serializer_class(data=request.data)
@@ -78,10 +112,32 @@ class UserUpdateView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
-class ListUsersView(APIView):
+class ListUsersView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ListUsersSerializer
-    
+    queryset = User.objects.all()
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('list of all users (superuser access needed)',
+             examples=
+             {
+                "application/json":
+                [
+                    {
+                        "username": "user",
+                        "first_name": "firstname",
+                        "last_name": "lastname",
+                        "is_active": True,
+                        "is_superuser": False,
+                        "is_working": True
+                    },
+                ]
+            }
+                ),
+            400: 'Bad Request'
+        },
+    )
+
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -96,10 +152,32 @@ class ListUsersView(APIView):
             return Response(list(users), status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
-class UserDetailView(APIView):
+class UserDetailView(GenericAPIView):
     permissions_classes = [permissions.AllowAny]
     serializer_class = UserDetailSerializer
-    
+    queryset = User.objects.all()  
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('single user details',
+             examples=
+             {
+                "application/json":
+                [
+                    {
+                        "username": "user",
+                        "first_name": "firstname",
+                        "last_name": "lastname",
+                        "is_active": True,
+                        "is_superuser": False,
+                        "is_working": True
+                    },
+                ]
+            }
+                ),
+            400: 'Bad Request'
+        },
+    )
+
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
