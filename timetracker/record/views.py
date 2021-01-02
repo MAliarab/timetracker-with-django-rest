@@ -218,20 +218,48 @@ class ListTimesView(GenericAPIView):
         if serializer.is_valid(raise_exception=True):
             tz = pytz.timezone("Asia/Tehran")
             username = request.data.get('username', None)
-            times = Time.objects.filter(user__username=username).values("id","project","user","date","start_time","end_time","duration","description")
-            times = list(times)
-            for time in times:
-                time['project'] = Project.objects.get(id=time['project']).name
-                time['user'] = User.objects.get(id=time['user']).username
-                time['start_time'] = tz.normalize(time['start_time'])
-                if time['end_time']!=None:
-                    time['end_time'] = tz.normalize(time['end_time'])
-                time['date'] = str(jdatetime.date.fromgregorian(date=time['date']))
-                time['start_time'] = str(jdatetime.datetime.fromgregorian(datetime=time['start_time'].replace(microsecond=0)))
-                time['end_time'] = str(jdatetime.datetime.fromgregorian(datetime=time['end_time'].replace(microsecond=0))) if time['end_time']!=None else None
-                if time['duration']!=None:
-                    time['duration'] = time['duration'].seconds
-            return Response(times, status=status.HTTP_200_OK)
+            project = request.data.get('project', None)
+            start_time = request.data.get('start_time', None)
+            end_time = request.data.get('end_time', None)
+            times = None
+
+            if username:
+                times = Time.objects.filter(user__username=username)
+            if project:
+                if times != None:
+                    times.filter(project=project)
+                else:
+                    times = Time.objects.filter(project=project)
+            
+            if start_time:
+                if times != None:
+                    times.filter(start_time__gte=start_time)
+                else:
+                    times = Time.objects.filter(start_time__gte=start_time)
+            
+            if end_time:
+                if times != None:
+                    times.filter(end_time__lte=end_time)
+                else:
+                    times = Time.objects.filter(end_time__lte=end_time)
+            
+            if times!=None:
+                times = times.values("id","project","user","date","start_time","end_time","duration","description")
+                times = list(times)
+                for time in times:
+                    time['project'] = Project.objects.get(id=time['project']).name
+                    time['user'] = User.objects.get(id=time['user']).username
+                    time['start_time'] = tz.normalize(time['start_time'])
+                    if time['end_time']!=None:
+                        time['end_time'] = tz.normalize(time['end_time'])
+                    time['date'] = str(jdatetime.date.fromgregorian(date=time['date']))
+                    time['start_time'] = str(jdatetime.datetime.fromgregorian(datetime=time['start_time'].replace(microsecond=0)))
+                    time['end_time'] = str(jdatetime.datetime.fromgregorian(datetime=time['end_time'].replace(microsecond=0))) if time['end_time']!=None else None
+                    if time['duration']!=None:
+                        time['duration'] = time['duration'].seconds
+                return Response(times, status=status.HTTP_200_OK)
+            else:
+                return Response({'none_field_error':["must include at least one filter"]}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class TimeDeleteView(GenericAPIView):
@@ -342,4 +370,7 @@ class ProjectDetailView(GenericAPIView):
                 
             return Response(projects, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
- 
+
+
+
+

@@ -255,7 +255,7 @@ class ListUsersSerializer(serializers.ModelSerializer):
     token = serializers.CharField(
         required=True,
     )
-
+    
     class Meta:
         model = User
         fields = ['token']

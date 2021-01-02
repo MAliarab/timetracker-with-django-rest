@@ -162,7 +162,6 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
         return data
 
-
 class ProjectCreateSeralizer(serializers.ModelSerializer):
 
     token = serializers.CharField(
@@ -230,7 +229,6 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         
         return data
 
-
 class AddUserToProjectSerializer(serializers.ModelSerializer):
     
 
@@ -283,6 +281,10 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
             project_obj = project.first()
         else:
             raise serializers.ValidationError("project is not exists")
+        
+        pu = ProjectUser.objects.filter(user=user_obj,project=project_obj)
+        if pu.exists():
+            raise serializers.ValidationError("user already added to this project")
 
         try:
             ProjectUser.objects.create(
@@ -322,7 +324,6 @@ class ListProjectsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("you have not access")
         
         return data
-
 
 class TimeRecordingStopSerializer(serializers.ModelSerializer):
 
@@ -372,12 +373,24 @@ class ListTimesSerializer(serializers.ModelSerializer):
     )
 
     username = serializers.CharField(
-        required=True,
+        required=False,
+    )
+
+    project = serializers.CharField(
+        required=False,
+    )
+
+    start_time = serializers.DateTimeField(
+        required=False,
+    )
+
+    end_time = serializers.DateTimeField(
+        required=False,
     )
 
     class Meta:
         model = Time
-        fields = ['token', 'username']
+        fields = ['token', 'username', 'project', 'start_time', 'end_time']
 
     def validate(self, data):
 
@@ -388,15 +401,17 @@ class ListTimesSerializer(serializers.ModelSerializer):
             token_obj = token.first()
         else:
             raise serializers.ValidationError("token is not valid")
-        
-        if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
-            raise serializers.ValidationError("you have not access")
+        if username:
+            if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
+                raise serializers.ValidationError("you have not access")
+        else:
+            if (not token_obj.user.is_superuser):
+                raise serializers.ValidationError("you have not access")
         
         if not user.exists():
             raise serializers.ValidationError("user is not exist")
-
+        
         return data   
-
 
 class TimeDeleteSerializer(serializers.ModelSerializer):
 
