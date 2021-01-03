@@ -5,7 +5,7 @@ from django.db.models import Q
 from rest_framework.authtoken.models import Token
 from account.models import UserProfile
 from django.contrib.auth.hashers import mask_hash, make_password
-
+from account.models import UserProfile
 
 class UserRegisterSerializer(serializers.ModelSerializer):
 
@@ -30,23 +30,40 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         min_length=8,style={'input_type':'password'}
     )
 
-        
-    def create(self, validated_data):
-    
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            email=validated_data['email'],
-            password=(validated_data['password']),
-            is_active=False
-            )
+    job_type = serializers.CharField(
+        required=True
+    )
 
-        return user
+    hours_per_month = serializers.FloatField(
+        required=False,
+    )
 
     class Meta:
         model = User
-        fields = ('id',  'username', 'first_name', 'last_name', 'email', 'password')
+        fields = ('id',  'username', 'first_name', 'last_name', 'email', 'password','job_type', 'hours_per_month')
+
+    def validate(self, data):
+        try:
+            user = User.objects.create_user(
+                username=data['username'],
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                email=data['email'],
+                password=(data['password']),
+                is_active=False,
+                )
+            user_profile = UserProfile.objects.filter(user=user)
+            if user_profile.exists():
+                user_profile_obj = user_profile.first()
+                user_profile_obj.job_type = data['job_type']
+                user_profile_obj.hours_per_month = data['hours_per_month']
+                user_profile_obj.save()
+            
+        except Exception as e:
+            raise Exception("database error")
+        return data
+
+    
 
 class UserLoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(

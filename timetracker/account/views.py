@@ -30,11 +30,24 @@ from rest_framework.generics import (
     GenericAPIView
 )
 
-class UserRegisterView(CreateAPIView):
+class UserRegisterView(GenericAPIView):
     
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
+        
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('login successfully.', UserLoginSerializer),
+            400: 'Bad Request'
+        },
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 class UserLoginView(GenericAPIView):
     

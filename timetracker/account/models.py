@@ -7,6 +7,8 @@ from django.dispatch import receiver
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     is_working = models.BooleanField(default=False)
+    job_type = models.CharField(default='full_time',max_length=50)
+    hours_per_month = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.user.username
