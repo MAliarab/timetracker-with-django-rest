@@ -184,9 +184,26 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         read_only=True
     )
 
+    description = serializers.CharField(
+        required=False,
+    )
+
+    budget = serializers.IntegerField(
+        required=False,
+        min_value=0
+    )
+
+    avatar = serializers.ImageField(
+        required=False,
+    )
+
+    avatar_path = serializers.CharField(
+        read_only=True
+    )
+    
     class Meta:
         model = Project
-        fields = ['token', 'name', 'category','start_time']
+        fields = ['token', 'name', 'category','start_time', 'description', 'budget', 'avatar','avatar_path']
 
     
     def validate(self, data):
@@ -194,10 +211,15 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         token = Token.objects.filter(
             key= data.get('token', None)
             )
-        name = data.get('name', None)
-        category = data.get('category', None)
+
+        data_cp = data.copy()
+        del data_cp['token']
+
         tz = pytz.timezone('Asia/Tehran')
-        start_time = datetime.datetime.now(tz).replace(microsecond=0)
+        data_cp['start_time'] = datetime.datetime.now(tz).replace(microsecond=0)
+        
+
+
         if token.exists():
             token_obj = token.first()
         else:
@@ -216,17 +238,15 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
             raise serializers.ValidationError("You have not admin access")
         
         try:
-            Project.objects.create(
-                name=name,
-                category=category,
-                start_time=str(start_time)
-                      
-            )
+            p = Project.objects.create(**data_cp)
+            if p.avatar:
+                data['avatar_path'] = p.avatar.url
         except Exception as e:
             print('db error')
             raise serializers.ValidationError(e)
-        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
-        
+        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=data_cp['start_time'])
+        if data.get('avatar',None):
+            del data['avatar']
         return data
 
 class AddUserToProjectSerializer(serializers.ModelSerializer):
@@ -608,20 +628,37 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
     end_time = serializers.DateTimeField(
         required=False,
     )
+
+    avatar = serializers.ImageField(
+        required=False,
+    )
+
+    description = serializers.CharField(
+        required=False,
+    )
+
+    budget = serializers.IntegerField(
+        min_value=0,
+        required=False,
+    )
     
-    
+    avatar_path = serializers.CharField(
+        read_only=True,
+    )
+        
     class Meta:
         model = Project
-        fields = ['token','project','new_project','category','start_time','end_time']
+        fields = ['token','project','new_project','category','start_time','end_time','description','budget','avatar','avatar_path']
 
     def validate(self,data):
 
         token = Token.objects.filter(key=data.get('token',None))
         project = Project.objects.filter(name=data.get('project', None))
         new_project = data.get('new_project', None)
-        category = data.get('category', None)
-        start_time = data.get('start_time', None)
-        end_time = data.get('end_time', None)
+        data_cp = data.copy()
+        del data_cp['token']
+        if new_project:
+            data_cp['name'] = new_project
 
         if token.exists():
             token_obj = token.first()
@@ -636,24 +673,17 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("project is not exist")
         
-        if new_project:
-            project_obj.name = new_project
         
-        if category:
-            project_obj.category = category
-        
-        if start_time:
-            project_obj.start_time = start_time
-        
-        if end_time:
-            project_obj.end_time = end_time
-        
-        
+        for (key,value) in data_cp.items():
+            setattr(project_obj,key,value)
+
         try:
             project_obj.save()
         except Exception as e:
             raise serializers.ValidationError(e)
-
+        if data.get('avatar',None):
+            del data['avatar']
+            data['avatar_path'] = project_obj.avatar.url
         return data
     
 class ProjectDetailSerializer(serializers.ModelSerializer):

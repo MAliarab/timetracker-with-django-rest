@@ -26,7 +26,7 @@ SECRET_KEY = '%#5%ci(do)jhv75bd=&^m6hqs()nav@2ujcrnh02*=^!lyupt4'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+# '192.168.1.103','192.168.1.100','0.0.0.0'
 
 # Application definition
 
@@ -129,6 +129,8 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 VENV_PATH = os.path.dirname(BASE_DIR)
 STATIC_ROOT = os.path.join(VENV_PATH, 'static_root')
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/' # 'http://myhost:port/media/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -136,7 +138,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
-    'DATETIME_INPUT_FORMATS': ("%Y-%m-%d %H:%M:%S",),
+    'DATETIME_INPUT_FORMATS': ("%Y-%m-%d %H:%M:%S",'iso-8601'),
     'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S"
     
 }

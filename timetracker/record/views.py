@@ -170,11 +170,14 @@ class ListProjectView(GenericAPIView):
                         'category':pu.project.category,
                         'start_time':str(jdatetime.datetime.fromgregorian(datetime=tz.normalize(pu.project.start_time))),
                         'end_time':str(jdatetime.datetime.fromgregorian(datetime=tz.normalize(pu.project.end_time))) if pu.project.end_time!=None else None,
-                        'username':pu.user.username
+                        'username':pu.user.username,
+                        'avatar':pu.project.avatar.url,
+                        'description': pu.project.description,
+                        'budget':pu.project.budget
                     })
                 return Response(project_list, status=status.HTTP_200_OK)
             else:
-                project_list = list(Project.objects.all().values('name','category', 'start_time', 'end_time'))
+                project_list = list(Project.objects.all().values('name','category', 'start_time', 'end_time','avatar','description','budget'))
                 for project in project_list:
                     
                     project['start_time'] = str(jdatetime.datetime.fromgregorian(datetime=tz.normalize(project['start_time'])))
@@ -360,11 +363,12 @@ class ProjectDetailView(GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             tz = pytz.timezone("Asia/Tehran")
-            projects = Project.objects.filter(name=request.data.get('project',None)).values('name', 'category', 'start_time', 'end_time')
+            projects = Project.objects.filter(name=request.data.get('project',None)).values(
+                'name', 'category', 'start_time', 'end_time','avatar','description', 'budget'
+                )
             projects = list(projects)
             
             for project in projects:
-                print(str(jdatetime.datetime.fromgregorian(datetime=tz.normalize(project['start_time']))))
                 project['start_time'] = str(jdatetime.datetime.fromgregorian(datetime=project['start_time'].replace(microsecond=0)))
                 project['end_time'] = str(jdatetime.datetime.fromgregorian(datetime=project['end_time'].replace(microsecond=0))) if project['end_time']!=None else None
                 
