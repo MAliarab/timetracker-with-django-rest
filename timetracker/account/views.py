@@ -6,6 +6,7 @@ import json
 from django.forms.models import model_to_dict
 from django.contrib.auth.models import User
 from account.models import UserProfile
+from record.models import ProjectUser
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from django.http import HttpResponse
@@ -140,15 +141,28 @@ class ListUsersView(GenericAPIView):
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            users = User.objects.filter(is_staff=False).values('username','first_name','last_name','is_active','is_superuser')
-            users_list = list(users)
 
-            for user in users_list:
-                userprofile = UserProfile.objects.filter(user__username=user['username'])
-                
-                if userprofile.exists():
-                    user['is_working'] = userprofile.first().is_working
-            return Response(list(users), status=status.HTTP_200_OK) 
+            project = request.data.get('project', None)
+            is_working = request.data.get('is_working',None)
+            user_profiles = None
+            project_users = None
+            users = User.objects.all()
+            if project!=None:
+                project_users = ProjectUser.objects.filter(project__name=project)
+                users = users.filter(username__in=project_users.values('user__username'))
+            if is_working!=None:
+                user_profiles = UserProfile.objects.filter(is_working=is_working)
+                users = users.filter(username__in=user_profiles.values('user__username'))
+            users = users.values('username','first_name','last_name','is_active','is_superuser')
+            users = list(users)
+            for user in users:
+                # userprofile = UserProfile.objects.filter(user__username=user['username'])  
+                if user_profiles:
+                    user['is_working'] = user_profiles.filter(user__username=user['username']).first().is_working
+                if project_users:
+                    # print(project_users.filter(user=user).first())
+                    user['project'] = project_users.filter(user__username=user['username']).first().project.name
+            return Response(users, status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class UserDetailView(GenericAPIView):

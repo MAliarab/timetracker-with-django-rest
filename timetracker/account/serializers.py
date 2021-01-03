@@ -256,9 +256,19 @@ class ListUsersSerializer(serializers.ModelSerializer):
         required=True,
     )
     
+    project = serializers.CharField(
+        required=False,
+    )
+
+    is_working = serializers.BooleanField(
+        required=False,
+    )
+
+    
     class Meta:
         model = User
-        fields = ['token']
+        fields = ['token','project','is_working']
+        
 
     def validate(self,data):
 
