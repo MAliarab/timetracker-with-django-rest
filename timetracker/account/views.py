@@ -10,25 +10,13 @@ from record.models import ProjectUser
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from django.http import HttpResponse
-from account.serializers import (
-    UserRegisterSerializer,
-    UserLoginSerializer,
-    UserActiveSerializer,
-    UserDeleteSerializer,
-    UserUpdateSerializer,
-    ListUsersSerializer,
-    UserDetailSerializer)
+from account.serializers import *
 from rest_framework.views import APIView
 from django.core import serializers
-from rest_framework.generics import (
-    CreateAPIView,
-    DestroyAPIView,
-    UpdateAPIView,
-    ListAPIView,
-    RetrieveAPIView,
-    ListCreateAPIView,
-    GenericAPIView
-)
+from rest_framework.generics import GenericAPIView
+import swagger
+
+swagger_schema = swagger.SwaggerErrorSchema()
 
 class UserRegisterView(GenericAPIView):
     
@@ -37,18 +25,21 @@ class UserRegisterView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
         
     @swagger_auto_schema(
+        operation_description="user activation after registration needed (/active-user)",
+
         responses={
-            200: openapi.Response('login successfully.', UserLoginSerializer),
-            400: 'Bad Request'
+            200: openapi.Response('register successfully.', swagger.get_registration_schema()),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('register'))
         },
     )
+
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
 class UserLoginView(GenericAPIView):
     
     permission_classes = [permissions.AllowAny]
@@ -56,9 +47,11 @@ class UserLoginView(GenericAPIView):
     queryset = User.objects.all()
 
     @swagger_auto_schema(
+        operation_description="user login",
+
         responses={
-            200: openapi.Response('login successfully.', UserLoginSerializer),
-            400: 'Bad Request'
+            200: openapi.Response('login user successfully.', UserLoginSerializer),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('login'))
         },
     )
     def post(self, request):
@@ -74,10 +67,11 @@ class UserActiveView(GenericAPIView):
     queryset = User.objects.all()
 
     @swagger_auto_schema(
-        operation_description="use 'action=True' for activate and 'action=False' for deactivate",
+        operation_description="user activation. (action=true) for activation (action=false) for deactivation",
+
         responses={
-            200: openapi.Response('active/deactive successfully' , UserActiveSerializer),
-            400: 'Bad Request'
+            200: openapi.Response('active user successfully.', UserActiveSerializer),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('active-user'))
         },
     )
 
@@ -93,9 +87,11 @@ class UserDeleteView(GenericAPIView):
     serializer_class = UserDeleteSerializer
     queryset = User.objects.all()
     @swagger_auto_schema(
+        operation_description="user delete",
+
         responses={
-            200: openapi.Response('user delete successfully' , UserDeleteSerializer),
-            400: 'Bad Request'
+            200: openapi.Response('delete user successfully.', UserDeleteSerializer),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('delete-user'))
         },
     )
 
@@ -111,9 +107,11 @@ class UserUpdateView(GenericAPIView):
     serializer_class = UserUpdateSerializer
     queryset = User.objects.all()
     @swagger_auto_schema(
+        operation_description="user update",
+
         responses={
-            200: openapi.Response('user update successfully' , UserUpdateSerializer),
-            400: 'Bad Request'
+            200: openapi.Response('update user successfully.', UserUpdateSerializer),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('update-user'))
         },
     )
 
@@ -129,28 +127,15 @@ class ListUsersView(GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = ListUsersSerializer
     queryset = User.objects.all()
+
     @swagger_auto_schema(
+        operation_description="list of users",
+
         responses={
-            200: openapi.Response('list of all users (superuser access needed)',
-             examples=
-             {
-                "application/json":
-                [
-                    {
-                        "username": "user",
-                        "first_name": "firstname",
-                        "last_name": "lastname",
-                        "is_active": True,
-                        "is_superuser": False,
-                        "is_working": True
-                    },
-                ]
-            }
-                ),
-            400: 'Bad Request'
+            200: openapi.Response('update user successfully.', swagger.get_list_user_schema()),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('list-users'))
         },
     )
-
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -183,31 +168,18 @@ class UserDetailView(GenericAPIView):
     serializer_class = UserDetailSerializer
     queryset = User.objects.all()  
     @swagger_auto_schema(
+        operation_description="detail of user",
+
         responses={
-            200: openapi.Response('single user details',
-             examples=
-             {
-                "application/json":
-                [
-                    {
-                        "username": "user",
-                        "first_name": "firstname",
-                        "last_name": "lastname",
-                        "is_active": True,
-                        "is_superuser": False,
-                        "is_working": True
-                    },
-                ]
-            }
-                ),
-            400: 'Bad Request'
+            200: openapi.Response('update user successfully.', swagger.get_detail_user_schema()),
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('detail-users'))
         },
     )
 
     def post(self,request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            users = User.objects.filter(is_staff=False,username=request.data.get('username',None)).values(
+            users = User.objects.filter(username=request.data.get('username',None)).values(
                 'username',
                 'first_name',
                 'last_name',
@@ -216,9 +188,11 @@ class UserDetailView(GenericAPIView):
             )
             users_list = list(users)
             for user in users_list:
-                userprofile = UserProfile.objects.filter(user__username=user['username'])  
+                userprofile = UserProfile.objects.filter(user__username=user['username']) 
                 if userprofile.exists():
                     user['is_working'] = userprofile.first().is_working
+                    user['job_type'] = userprofile.first().job_type
+                    user['hours_per_month'] = userprofile.first().hours_per_month
             return Response(list(users), status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 

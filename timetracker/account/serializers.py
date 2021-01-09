@@ -30,7 +30,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         min_length=8,style={'input_type':'password'}
     )
 
-    job_type = serializers.CharField(
+    job_type = serializers.ChoiceField(
+        choices=['full_time','part_time','intern'],
         required=True
     )
 
@@ -60,10 +61,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                 user_profile_obj.save()
             
         except Exception as e:
-            raise Exception("database error")
+            raise serializers.ValidationError("database error")
         return data
-
-    
 
 class UserLoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(
@@ -95,11 +94,11 @@ class UserLoginSerializer(serializers.ModelSerializer):
         if user.exists():
             user_obj = user.first()
         else:
-            raise serializers.ValidationError("username in not valid")
+            raise serializers.ValidationError("username/password in not valid")
 
         if user_obj:
             if not user_obj.check_password(password):
-                raise serializers.ValidationError("password in not correct")
+                raise serializers.ValidationError("username/password in not valid")
             if not user_obj.is_active:
                 raise serializers.ValidationError("user is not active")
             else:
@@ -107,8 +106,6 @@ class UserLoginSerializer(serializers.ModelSerializer):
                 data['token'] = token.key
                 data['password'] = make_password(password)
                 
-        else:
-            raise serializers.ValidationError("user is not exists")
         
         return data
 
@@ -141,9 +138,9 @@ class UserActiveSerializer(serializers.ModelSerializer):
         if token.exists():
             token_obj = token.first()
         else:
-            raise serializers.ValidationError("token in not valid")
+            raise serializers.ValidationError("token is not valid")
         if not token_obj.user.is_superuser:
-            raise serializers.ValidationError("you have not admin access") 
+            raise serializers.ValidationError("you have not access") 
         if user.exists():
             user_obj = user.first()
         else:
@@ -180,9 +177,9 @@ class UserDeleteSerializer(serializers.ModelSerializer):
         if token.exists():
             token_obj = token.first()
         else:
-            raise serializers.ValidationError("token in not valid")
+            raise serializers.ValidationError("token is not valid")
         if not token_obj.user.is_superuser:
-            raise serializers.ValidationError("you have not admin access") 
+            raise serializers.ValidationError("you have not access") 
         if user.exists():
             user_obj = user.first()
         else:
@@ -221,11 +218,17 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         required=False,
         min_length=8,style={'input_type':'password'}
     )
-    
+    job_type = serializers.ChoiceField(
+        choices=['full_time','part_time','intern'],
+        required=False
+    )
+    hours_per_month = serializers.IntegerField(
+        required=False,
+    )
 
     class Meta:
         model = User
-        fields = ('token','username','first_name', 'last_name', 'email', 'password')
+        fields = ('token','username','first_name', 'last_name', 'email', 'password','job_type','hours_per_month')
 
     def validate(self, data):
 
@@ -236,14 +239,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         last_name = data.get('last_name',None)
         email = data.get('email',None)
         password = data.get('password',None)
+        job_type = data.get('job_type',None)
+        hours__per_month = data.get('hours__per_month',None)
 
 
         if token.exists():
             token_obj = token.first()
         else:
-            raise serializers.ValidationError("token in not valid")
+            raise serializers.ValidationError("token is not valid")
         if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
-            raise serializers.ValidationError("you have not access to this action")
+            raise serializers.ValidationError("you have not access")
 
         if user.exists():
             user_obj = user.first()
@@ -258,7 +263,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             user_obj.email = email
         if password:
             user_obj.password = password
-
+        if job_type:
+            user_obj.job_type = job_type
+        if hours__per_month:
+            user_obj.hours__per_month = hours__per_month
+        
         try:
             user_obj.save()
         except Exception as e:
@@ -296,7 +305,7 @@ class ListUsersSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("token is not valid")
         if not token_obj.user.is_superuser:
-            raise serializers.ValidationError("you have not admin access")
+            raise serializers.ValidationError("you have not access")
         
         return data
 
@@ -323,8 +332,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("token is not valid")
         if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
-
-            raise serializers.ValidationError("you have not access to this action")
+            raise serializers.ValidationError("you have not access")
         
         return data
 

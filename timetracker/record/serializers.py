@@ -15,10 +15,6 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
         required=True,
     )
 
-    # user = serializers.CharField(
-    #     required=True,
-    # )
-
     start_time = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S",
         required=True,
@@ -60,17 +56,14 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
         if token.exists():
             token_obj = token.first()
         else:
-            raise serializers.ValidationError("token in not valid")
+            raise serializers.ValidationError("token is not valid")
         if project.exists():
             project_obj = project.first()
         else:
             raise serializers.ValidationError("project is not exist")
         
-        # if token_obj.user.exists():
-        #     raise serializers.ValidationError("user is not exist")
-        
         if not ProjectUser.objects.filter(project=project_obj, user=token_obj.user).exists():
-            raise serializers.ValidationError("this user is not a member of the project")
+            raise serializers.ValidationError("user is not a member of the project")
         
 
         try:
@@ -86,8 +79,6 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(e)
         
-        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
-        data['end_time'] = jdatetime.datetime.fromgregorian(datetime=end_time)
         return data
 
 class TimeRcordingAutoSerializer(serializers.ModelSerializer):
@@ -128,14 +119,11 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         if token.exists():
             token_obj = token.first()
         else:
-            raise serializers.ValidationError("token in not valid")
+            raise serializers.ValidationError("token is not valid")
         if project.exists():
             project_obj = project.first()
         else:
             raise serializers.ValidationError("project is not exist")
-        
-        # if token_obj.user.exists():
-        #     raise serializers.ValidationError("user is not exist")
         
         if not ProjectUser.objects.filter(project=project_obj, user=token_obj.user).exists():
             raise serializers.ValidationError("this user is not a member of the project")
@@ -143,10 +131,8 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         times_list = Time.objects.filter(user=token_obj.user,end_time=None)
         if times_list.exists():
             time = times_list.first()
-            raise serializers.ValidationError("you have an imcomplete time: "+
-                                                str(jdatetime.datetime.fromgregorian(datetime=time.start_time.astimezone(tz))))
+            raise serializers.ValidationError("you have an imcomplete time: "+str(time.start_time.astimezone(tz).replace(tzinfo=None)))
 
-        
         try:
             Time.objects.create(
                 project=project_obj,
@@ -159,7 +145,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(e)
         
-        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=start_time)
+        data['start_time'] = start_time
         return data
 
 class ProjectCreateSeralizer(serializers.ModelSerializer):
@@ -170,7 +156,7 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
 
     name = serializers.CharField(
         required=True,
-        validators=[UniqueValidator(queryset=Project.objects.all(), message="project already exists")]
+        validators=[UniqueValidator(queryset=Project.objects.all())]
     )
 
     category = serializers.CharField(
@@ -195,16 +181,18 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
 
     avatar = serializers.ImageField(
         required=False,
+
     )
 
     avatar_path = serializers.CharField(
+        required=False,
         read_only=True
     )
     
     class Meta:
         model = Project
         fields = ['token', 'name', 'category','start_time', 'description', 'budget', 'avatar','avatar_path']
-
+        write_only_fields = ('avatar',)
     
     def validate(self, data):
 
@@ -216,7 +204,8 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         del data_cp['token']
 
         tz = pytz.timezone('Asia/Tehran')
-        data_cp['start_time'] = datetime.datetime.now(tz).replace(microsecond=0)
+        start_time = datetime.datetime.now(tz).replace(microsecond=0)
+        data_cp['start_time'] = start_time
         
 
 
@@ -225,26 +214,16 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("token is not valid")
         
-        user = User.objects.filter(
-            username=token_obj.user
-        )
-
-        if user.exists():
-            user_obj = user.first()
-        else:
-            raise serializers.ValidationError("user is not exist")
-
-        if not user_obj.is_superuser:
-            raise serializers.ValidationError("You have not admin access")
+        if not token_obj.user.is_superuser:
+            raise serializers.ValidationError("You have not access")
         
         try:
             p = Project.objects.create(**data_cp)
             if p.avatar:
                 data['avatar_path'] = p.avatar.url
         except Exception as e:
-            print('db error')
             raise serializers.ValidationError(e)
-        data['start_time'] = jdatetime.datetime.fromgregorian(datetime=data_cp['start_time'])
+        data['start_time'] = start_time
         if data.get('avatar',None):
             del data['avatar']
         return data
@@ -290,7 +269,7 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("token is not valid")
         
         if not token_obj.user.is_superuser:
-            raise serializers.ValidationError("You have not admin access")
+            raise serializers.ValidationError("You have not access")
         
         if user.exists():
             user_obj = user.first()
@@ -300,7 +279,7 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
         if project.exists():
             project_obj = project.first()
         else:
-            raise serializers.ValidationError("project is not exists")
+            raise serializers.ValidationError("project is not exist")
         
         pu = ProjectUser.objects.filter(user=user_obj,project=project_obj)
         if pu.exists():
@@ -374,7 +353,7 @@ class TimeRecordingStopSerializer(serializers.ModelSerializer):
         if time.exists():
             time_obj = time.first()
         else:
-            raise serializers.ValidationError("there is no incomplete time")
+            raise serializers.ValidationError("there is no incomplete time for this user")
         try:
             now_time =  datetime.datetime.now()
             time_obj.end_time = now_time
@@ -416,7 +395,12 @@ class ListTimesSerializer(serializers.ModelSerializer):
 
         token = Token.objects.filter(key=data.get('token',None))
         username = data.get('username', None)
-        user = User.objects.filter(username=username)
+        project = data.get('project', None)
+        start_time = data.get('start_time', None)
+        end_time = data.get('end_time', None)
+        
+        if username:
+            user = User.objects.filter(username=username)
         if token.exists():
             token_obj = token.first()
         else:
@@ -427,10 +411,11 @@ class ListTimesSerializer(serializers.ModelSerializer):
         else:
             if (not token_obj.user.is_superuser):
                 raise serializers.ValidationError("you have not access")
-        
-        if not user.exists():
-            raise serializers.ValidationError("user is not exist")
-        
+        if username:
+            if not user.exists():
+                raise serializers.ValidationError("user is not exist")
+        if all(v is None for v in [username, project, start_time, end_time]):
+            raise serializers.ValidationError("must include at least one filter")
         return data   
 
 class TimeDeleteSerializer(serializers.ModelSerializer):
@@ -546,7 +531,6 @@ class TimeUpdateSerializer(serializers.ModelSerializer):
         if project:
             time_obj.project = project_obj
         
-        #TODO adding date auto to start and end time
         if start_time:
             time_obj.start_time = start_time
         
@@ -613,7 +597,8 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         required=True,
     )
 
-    new_project = serializers.CharField(
+    name = serializers.CharField(
+        validators=[UniqueValidator(queryset=Project.objects.all())],
         required=False,
     )
 
@@ -648,7 +633,7 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         
     class Meta:
         model = Project
-        fields = ['token','project','new_project','category','start_time','end_time','description','budget','avatar','avatar_path']
+        fields = ['token','project','name','category','start_time','end_time','description','budget','avatar','avatar_path']
 
     def validate(self,data):
 
