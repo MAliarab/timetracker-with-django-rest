@@ -7,10 +7,6 @@ import datetime, pytz, jdatetime
 
 class TimeRcordingManualSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     project = serializers.CharField(
         required=True,
     )
@@ -32,13 +28,13 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Time
-        fields = ['token', 'project', 'start_time', 'end_time','description']
+        fields = ['project', 'start_time', 'end_time','description']
 
     
     def validate(self, data):
 
         token = Token.objects.filter(
-            key= data.get('token', None)
+            key=self.context
             )
         project = Project.objects.filter(
             name=data.get('project', None)
@@ -83,10 +79,6 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
 
 class TimeRcordingAutoSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     project = serializers.CharField(
         required=True,
     )
@@ -99,13 +91,13 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Time
-        fields = ['token', 'project','start_time']
+        fields = ['project','start_time']
 
     
     def validate(self, data):
 
         token = Token.objects.filter(
-            key= data.get('token', None)
+            key= self.context
             )
         project = Project.objects.filter(
             name=data.get('project', None)
@@ -131,7 +123,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
         times_list = Time.objects.filter(user=token_obj.user,end_time=None)
         if times_list.exists():
             time = times_list.first()
-            raise serializers.ValidationError("you have an imcomplete time: "+str(time.start_time.astimezone(tz).replace(tzinfo=None)))
+            raise serializers.ValidationError("you have an imcomplete time: "+str(time.id)+","+str(time.start_time.astimezone(tz).replace(tzinfo=None)))
 
         try:
             Time.objects.create(
@@ -150,10 +142,6 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
 
 class ProjectCreateSeralizer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     name = serializers.CharField(
         required=True,
         validators=[UniqueValidator(queryset=Project.objects.all())]
@@ -168,6 +156,10 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
         format="%Y-%m-%d %H:%M:%S",
         required=False,
         read_only=True
+    )
+    end_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
     )
 
     description = serializers.CharField(
@@ -191,18 +183,16 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['token', 'name', 'category','start_time', 'description', 'budget', 'avatar','avatar_path']
+        fields = ['name', 'category','start_time', 'end_time', 'description', 'budget', 'avatar','avatar_path']
         write_only_fields = ('avatar',)
     
     def validate(self, data):
 
         token = Token.objects.filter(
-            key= data.get('token', None)
+            key=self.context
             )
 
         data_cp = data.copy()
-        del data_cp['token']
-
         tz = pytz.timezone('Asia/Tehran')
         start_time = datetime.datetime.now(tz).replace(microsecond=0)
         data_cp['start_time'] = start_time
@@ -230,11 +220,6 @@ class ProjectCreateSeralizer(serializers.ModelSerializer):
 
 class AddUserToProjectSerializer(serializers.ModelSerializer):
     
-
-    token = serializers.CharField(
-        required=True,
-    )
-
     username = serializers.CharField(
         required=True,
     )
@@ -246,13 +231,13 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectUser
-        fields = ['token', 'username', 'project_name']
+        fields = ['username', 'project_name']
 
     
     def validate(self, data):
 
         token = Token.objects.filter(
-            key= data.get('token', None)
+            key=self.context
             )
 
         user = User.objects.filter(
@@ -298,22 +283,17 @@ class AddUserToProjectSerializer(serializers.ModelSerializer):
 
 class ListProjectsSerializer(serializers.ModelSerializer):
 
-
-    token = serializers.CharField(
-        required=True,
-    )
-
     username = serializers.CharField(
         required=False,
     )
 
     class Meta:
         model = Project
-        fields = ('token','username')
+        fields = ('username',)
 
     def validate(self,data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         username = data.get('username',None)
         if token.exists():
             token_obj = token.first()
@@ -326,10 +306,6 @@ class ListProjectsSerializer(serializers.ModelSerializer):
 
 class TimeRecordingStopSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     description = serializers.CharField(
         required=True,
     )
@@ -337,11 +313,11 @@ class TimeRecordingStopSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Time
-        fields = ['token', 'description']
+        fields = ['description']
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         description = data.get('description')
         tz = pytz.timezone("Asia/Tehran")
         if token.exists():
@@ -367,10 +343,6 @@ class TimeRecordingStopSerializer(serializers.ModelSerializer):
         
 class ListTimesSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     username = serializers.CharField(
         required=False,
     )
@@ -389,11 +361,11 @@ class ListTimesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Time
-        fields = ['token', 'username', 'project', 'start_time', 'end_time']
+        fields = ['username', 'project', 'start_time', 'end_time']
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         username = data.get('username', None)
         project = data.get('project', None)
         start_time = data.get('start_time', None)
@@ -420,21 +392,17 @@ class ListTimesSerializer(serializers.ModelSerializer):
 
 class TimeDeleteSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     time_id = serializers.IntegerField(
         required=True,
     )
 
     class Meta:
         model = Time
-        fields = ['token', 'time_id']
+        fields = ['time_id']
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         time_id = data.get('time_id', None)
         
         if token.exists():
@@ -461,10 +429,6 @@ class TimeDeleteSerializer(serializers.ModelSerializer):
 
 class TimeUpdateSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     time_id = serializers.IntegerField(
         required=True,
     )
@@ -487,11 +451,11 @@ class TimeUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Time
-        fields = ['token','time_id', 'project', 'start_time', 'end_time', 'description']
+        fields = ['time_id', 'project', 'start_time', 'end_time', 'description']
 
     def validate(self,data):
 
-        token = Token.objects.filter(key=data.get('token', None))
+        token = Token.objects.filter(key=self.context)
         time= Time.objects.filter(id=data.get('time_id',None))
         project = data.get('project')
         start_time = data.get('start_time')
@@ -551,21 +515,17 @@ class TimeUpdateSerializer(serializers.ModelSerializer):
         
 class ProjectDeleteSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     project = serializers.CharField(
         required=True,
     )
 
     class Meta:
         model = Project
-        fields = ['token','project']
+        fields = ['project']
 
     def validate(self,data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         project = Project.objects.filter(name=data.get('project', None))
 
         if token.exists():
@@ -588,10 +548,6 @@ class ProjectDeleteSerializer(serializers.ModelSerializer):
         return data
     
 class ProjectUpdateSerializer(serializers.ModelSerializer):
-
-    token = serializers.CharField(
-        required=True,
-    )
 
     project = serializers.CharField(
         required=True,
@@ -633,15 +589,14 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
         
     class Meta:
         model = Project
-        fields = ['token','project','name','category','start_time','end_time','description','budget','avatar','avatar_path']
+        fields = ['project','name','category','start_time','end_time','description','budget','avatar','avatar_path']
 
     def validate(self,data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         project = Project.objects.filter(name=data.get('project', None))
-        new_project = data.get('new_project', None)
+        new_project = data.get('name', None)
         data_cp = data.copy()
-        del data_cp['token']
         if new_project:
             data_cp['name'] = new_project
 
@@ -673,21 +628,17 @@ class ProjectUpdateSerializer(serializers.ModelSerializer):
     
 class ProjectDetailSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     project = serializers.CharField(
         required=True,
     )
 
     class Meta:
         model = Project
-        fields = ['token','project']
+        fields = ['project']
 
     def validate(self,data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         project = Project.objects.filter(name=data.get('project', None))
 
         if token.exists():

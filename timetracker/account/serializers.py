@@ -59,7 +59,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                 user_profile_obj.job_type = data['job_type']
                 user_profile_obj.hours_per_month = data['hours_per_month']
                 user_profile_obj.save()
-            
+            data['password'] = make_password(data['password'])
         except Exception as e:
             raise serializers.ValidationError("database error")
         return data
@@ -111,10 +111,6 @@ class UserLoginSerializer(serializers.ModelSerializer):
 
 class UserActiveSerializer(serializers.ModelSerializer):
     
-    token = serializers.CharField(
-        required=True,
-    )
-
     username = serializers.CharField(
         required=True,
     )
@@ -126,11 +122,11 @@ class UserActiveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model=Token
-        fields = ('token','username','action')
+        fields = ('username','action')
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data['token'])
+        token = Token.objects.filter(key=self.context)
         user = User.objects.filter(username=data['username'])
         action = data.get('action',None) #True for activate False for dectivate
         if action==None:
@@ -157,21 +153,17 @@ class UserActiveSerializer(serializers.ModelSerializer):
 
 class UserDeleteSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-
     username = serializers.CharField(
         required=True,
     )
 
     class Meta:
         model = Token
-        fields = ('token','username')
+        fields = ('username',)
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data.get('token',None))
+        token = Token.objects.filter(key=self.context)
         user = User.objects.filter(username=data.get('username',None))
         
         if token.exists():
@@ -192,10 +184,6 @@ class UserDeleteSerializer(serializers.ModelSerializer):
         return data
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-
-    token = serializers.CharField(
-        required=True,
-    )
 
     username = serializers.CharField(
         required=True,
@@ -228,11 +216,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('token','username','first_name', 'last_name', 'email', 'password','job_type','hours_per_month')
+        fields = ('username','first_name', 'last_name', 'email', 'password','job_type','hours_per_month')
 
     def validate(self, data):
 
-        token = Token.objects.filter(key=data['token'])
+        token = Token.objects.filter(key=self.context)
         user = User.objects.filter(username=data['username'])
         username = data.get('username',None)
         first_name = data.get('first_name',None)
@@ -278,10 +266,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 class ListUsersSerializer(serializers.ModelSerializer):
 
-    token = serializers.CharField(
-        required=True,
-    )
-    
     project = serializers.CharField(
         required=False,
     )
@@ -290,16 +274,12 @@ class ListUsersSerializer(serializers.ModelSerializer):
         required=False,
     )
 
-    
     class Meta:
         model = User
-        fields = ['token','project','is_working']
+        fields = ['project','is_working']
         
-
     def validate(self,data):
-
-        token = Token.objects.filter(key=data.get('token',None))
-
+        token = Token.objects.filter(key=self.context)
         if token.exists():
             token_obj = token.first()
         else:
@@ -310,22 +290,18 @@ class ListUsersSerializer(serializers.ModelSerializer):
         return data
 
 class UserDetailSerializer(serializers.ModelSerializer):
-
-    token = serializers.CharField(
-        required=True,
-    )
-
+    
     username = serializers.CharField(
         required=True,
     )
 
     class Meta:
         model = User
-        fields = ['token','username']
+        fields = ['username']
 
     def validate(self,data):
-
-        token = Token.objects.filter(key=data.get('token',None))
+        
+        token = Token.objects.filter(key=self.context)
         username = data.get('username', None)
         if token.exists():
             token_obj = token.first()

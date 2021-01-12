@@ -14,8 +14,10 @@ from account.serializers import *
 from rest_framework.views import APIView
 from django.core import serializers
 from rest_framework.generics import GenericAPIView
-import swagger
+from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import PermissionDenied
 
+import swagger
 swagger_schema = swagger.SwaggerErrorSchema()
 
 class UserRegisterView(GenericAPIView):
@@ -36,7 +38,7 @@ class UserRegisterView(GenericAPIView):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -71,12 +73,15 @@ class UserActiveView(GenericAPIView):
 
         responses={
             200: openapi.Response('active user successfully.', UserActiveSerializer),
-            400: openapi.Response('Bad Request', swagger_schema.get_schema('active-user'))
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('active-user')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },
+
     )
 
     def post(self,request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -91,19 +96,21 @@ class UserDeleteView(GenericAPIView):
 
         responses={
             200: openapi.Response('delete user successfully.', UserDeleteSerializer),
-            400: openapi.Response('Bad Request', swagger_schema.get_schema('delete-user'))
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('delete-user')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },
     )
 
     def post(self,request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class UserUpdateView(GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserUpdateSerializer
     queryset = User.objects.all()
     @swagger_auto_schema(
@@ -111,20 +118,21 @@ class UserUpdateView(GenericAPIView):
 
         responses={
             200: openapi.Response('update user successfully.', UserUpdateSerializer),
-            400: openapi.Response('Bad Request', swagger_schema.get_schema('update-user'))
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('update-user')),
+            401: 'Unauthorized',
         },
     )
 
     def post(self,request):
         
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class ListUsersView(GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     serializer_class = ListUsersSerializer
     queryset = User.objects.all()
 
@@ -133,11 +141,13 @@ class ListUsersView(GenericAPIView):
 
         responses={
             200: openapi.Response('update user successfully.', swagger.get_list_user_schema()),
-            400: openapi.Response('Bad Request', swagger_schema.get_schema('list-users'))
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('list-users')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },
     )
     def post(self,request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
 
             project = request.data.get('project', None)
@@ -164,7 +174,7 @@ class ListUsersView(GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class UserDetailView(GenericAPIView):
-    permissions_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserDetailSerializer
     queryset = User.objects.all()  
     @swagger_auto_schema(
@@ -172,12 +182,14 @@ class UserDetailView(GenericAPIView):
 
         responses={
             200: openapi.Response('update user successfully.', swagger.get_detail_user_schema()),
-            400: openapi.Response('Bad Request', swagger_schema.get_schema('detail-users'))
+            400: openapi.Response('Bad Request', swagger_schema.get_schema('detail-users')),
+            401: 'Unauthorized',
         },
     )
-
+    
     def post(self,request):
-        serializer = self.serializer_class(data=request.data)
+        
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             users = User.objects.filter(username=request.data.get('username',None)).values(
                 'username',

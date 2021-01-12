@@ -48,14 +48,14 @@ def get_create_project_request_schema():
         "Create Project",
         type=openapi.TYPE_OBJECT,
         properties={
-            'token': openapi.Schema(type=openapi.TYPE_STRING,title='Token'),
             'name': openapi.Schema(type=openapi.TYPE_STRING,title='Project name'),
             'category': openapi.Schema(type=openapi.TYPE_STRING,title='Project category'),
             'description': openapi.Schema(type=openapi.TYPE_STRING,title='Description'),
+            'end_time': openapi.Schema(type=openapi.TYPE_STRING,title='End time'),
             'budget': openapi.Schema(type=openapi.TYPE_INTEGER,title='Budget'),
             'avatar': openapi.Schema(type=openapi.TYPE_FILE,title='Avatar (Image file)'),
         },
-        required=['token', 'name', 'category']
+        required=['name', 'category']
     )
 
 def get_create_project_schema():
@@ -63,15 +63,15 @@ def get_create_project_schema():
         "Create Project",
         type=openapi.TYPE_OBJECT,
         properties={
-            'token': openapi.Schema(type=openapi.TYPE_STRING,title='Token'),
             'name': openapi.Schema(type=openapi.TYPE_STRING,title='Project name'),
             'category': openapi.Schema(type=openapi.TYPE_STRING,title='Project category'),
-            'start_time': openapi.Schema(type=openapi.TYPE_STRING,title='Project category'),
+            'start_time': openapi.Schema(type=openapi.TYPE_STRING,title='Start time'),
+            'end_time': openapi.Schema(type=openapi.TYPE_STRING,title='End time'),
             'description': openapi.Schema(type=openapi.TYPE_STRING,title='Description'),
             'budget': openapi.Schema(type=openapi.TYPE_INTEGER,title='Budget'),
             'avatar_path': openapi.Schema(type=openapi.TYPE_STRING,title='Avatar path'),
         },
-        required=['token', 'name', 'category']
+        required=['name', 'category','start_time']
     )
 
 def get_registration_schema():

@@ -19,17 +19,18 @@ swagger_schema = swagger.SwaggerErrorSchema()
 class TimeRecoringManualView(GenericAPIView):
 
     serializer_class = TimeRcordingManualSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         operation_description="date-time format: YYYY-MM-DD hh:mm:ss or iso-8601 (gregorian date)",
         responses={
             201: openapi.Response('Time Created' , TimeRcordingManualSerializer),
-            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-manual'))
+            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-manual')),
+            401: 'Unauthorized'
         },
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -38,17 +39,18 @@ class TimeRecoringManualView(GenericAPIView):
 class TimeRecoringAutoView(GenericAPIView):
 
     serializer_class = TimeRcordingAutoSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         operation_description="date-time format: YYYY-MM-DD hh:mm:ss or iso-8601 (gregorian date)",
         responses={
             201: openapi.Response('Time Created' , TimeRcordingAutoSerializer),
-            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-auto'))
+            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-auto')),
+            401: 'Unauthorized'
         },
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -57,17 +59,18 @@ class TimeRecoringAutoView(GenericAPIView):
 class TimeRecoringStopView(GenericAPIView):
 
     serializer_class = TimeRecordingStopSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         operation_description="stop first incomplete time for user of passed token",
         responses={
             200: openapi.Response('Time Stopped' , TimeRecordingStopSerializer),
-            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-auto-stop'))
+            400: openapi.Response('Bad Request',swagger_schema.get_schema('time-auto-stop')),
+            401: 'Unauthorized'
         },
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -76,19 +79,22 @@ class TimeRecoringStopView(GenericAPIView):
 class ProjectCreateView(GenericAPIView):
     
     serializer_class = ProjectCreateSeralizer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         operation_description="create new project (superuser access needed)",
         request_body=swagger.get_create_project_request_schema(),
         responses={
             201: openapi.Response('Project Created' , swagger.get_create_project_schema()),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('create-project'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('create-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
+
         },
         
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -96,17 +102,19 @@ class ProjectCreateView(GenericAPIView):
 class AddUserToProjectView(GenericAPIView):
 
     serializer_class = AddUserToProjectSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         operation_description="add a user to the project (superuser access needed)",
         responses={
             200: openapi.Response('User Added To Project' , AddUserToProjectSerializer),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('add-to-project'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('add-to-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },     
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -114,19 +122,20 @@ class AddUserToProjectView(GenericAPIView):
 class ListProjectView(GenericAPIView):
 
     serializer_class = ListProjectsSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         operation_description="username=None returns all projects (superuser acccess needed) and username='user' returns user\'s projects \
                                      (user access and admin access) (gregorian date)",
         responses={
             200: openapi.Response('List Of Projects' , swagger.get_list_project_schema()),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('list-projects'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('list-projects')),
+            401: 'Unauthorized'
         }, 
     )
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             username = request.data.get('username', None)
             tz = pytz.timezone("Asia/Tehran")
@@ -159,18 +168,19 @@ class ListProjectView(GenericAPIView):
 class ListTimesView(GenericAPIView):
 
     serializer_class = ListTimesSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         operation_description="incomlete times not showing - gregorian date - 'duration' is in second - time zone (Asia/Tehran) - at least one filter needed",
         responses={
             200: openapi.Response('List Of Times' , swagger.get_list_time_schema()),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('list-times'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('list-times')),
+            401: 'Unauthorized'
         },
     )
     
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True): 
             username = request.data.get('username', None)
             project = request.data.get('project', None)
@@ -218,17 +228,18 @@ class ListTimesView(GenericAPIView):
 class TimeDeleteView(GenericAPIView):
 
     serializer_class = TimeDeleteSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         responses={
             200: openapi.Response('Time Deleted' , TimeDeleteSerializer),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('delete-time'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('delete-time')),
+            401: 'Unauthorized'
         },
     )
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -236,16 +247,17 @@ class TimeDeleteView(GenericAPIView):
 class TimeUpdateView(GenericAPIView):
 
     serializer_class = TimeUpdateSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Time.objects.all()
     @swagger_auto_schema(
         responses={
             200: openapi.Response("Time Updated", TimeUpdateSerializer),
-            400: openapi.Response('Bad Request' , swagger_schema.get_schema('update-time'))
+            400: openapi.Response('Bad Request' , swagger_schema.get_schema('update-time')),
+            401: 'Unauthorized'
         },
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -253,16 +265,18 @@ class TimeUpdateView(GenericAPIView):
 class ProjectDeleteView(GenericAPIView):
 
     serializer_class = ProjectDeleteSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         responses={
             200: openapi.Response("Project delete", ProjectDeleteSerializer),
             400: openapi.Response("Bad Request", swagger_schema.get_schema('delete-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -270,17 +284,19 @@ class ProjectDeleteView(GenericAPIView):
 class ProjectUpdateView(GenericAPIView):
 
     serializer_class = ProjectUpdateSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         responses={
             200: openapi.Response("Project update", swagger.get_update_project_schema()),
             400: openapi.Response("Bad Request", swagger_schema.get_schema('update-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         },
     )
     
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -288,17 +304,19 @@ class ProjectUpdateView(GenericAPIView):
 class ProjectDetailView(GenericAPIView):
 
     serializer_class = ProjectDetailSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAdminUser]
     queryset = Project.objects.all()
     @swagger_auto_schema(
         operation_description="gregorian date - all information of specific project",
         responses={
             200: openapi.Response("Project update", swagger.get_datail_project_schema()),
             400: openapi.Response("Bad Request", swagger_schema.get_schema('detail-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
         }
     )
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
         if serializer.is_valid(raise_exception=True):
             tz = pytz.timezone("Asia/Tehran")
             projects = Project.objects.filter(name=request.data.get('project',None)).values(

@@ -135,8 +135,11 @@ MEDIA_URL = '/media/' # 'http://myhost:port/media/'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.BasicAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+        # 'authentication.ExpiringTokenAuthentication'
+        
     ],
     'DATETIME_INPUT_FORMATS': ("%Y-%m-%d %H:%M:%S",'iso-8601'),
     'DATETIME_FORMAT': "%Y-%m-%d %H:%M:%S"
@@ -162,3 +165,5 @@ SWAGGER_SETTINGS = {
         }
     },
 }
+
+TOKEN_EXPIRED_AFTER_SECONDS = 86400
