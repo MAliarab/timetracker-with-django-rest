@@ -16,7 +16,7 @@ from django.core import serializers
 from rest_framework.generics import GenericAPIView
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
-
+from redminelib import Redmine
 import swagger
 swagger_schema = swagger.SwaggerErrorSchema()
 
@@ -207,4 +207,39 @@ class UserDetailView(GenericAPIView):
                     user['hours_per_month'] = userprofile.first().hours_per_month
             return Response(list(users), status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+
+
+class RedmineIntegrationView(GenericAPIView):
+
+    serializer_class = RedmineIntegrationSerializer
+    permission_classes = [permissions.IsAdminUser]
+    queryset = User.objects.all()
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response("Project update", swagger.get_update_project_schema()),
+            400: openapi.Response("Bad Request", swagger_schema.get_schema('update-project')),
+            401: 'Unauthorized',
+            403: 'Forbidden'
+        },
+    )
+    
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
+        if serializer.is_valid(raise_exception=True):
+            redmine = Redmine(request.data['redmine_server'],username=request.data['username'],password=request.data['password'])
+            users = redmine.user.all()
+            for user in users:
+                if not User.objects.filter(username=user.login).exists() and not User.objects.filter(email=user.mail).exists():
+                    user_obj = User.objects.create_user(
+                        username=user.login,
+                        first_name=user.firstname,
+                        last_name=user.lastname,
+                        email=user.mail,
+                        password=12345678,
+                        is_active=False,
+                    )
+                
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 

@@ -312,3 +312,33 @@ class UserDetailSerializer(serializers.ModelSerializer):
         
         return data
 
+
+class RedmineIntegrationSerializer(serializers.ModelSerializer):
+
+    redmine_server = serializers.CharField(
+        required=True,
+    )
+
+    username = serializers.CharField(
+        required=True,
+    )
+
+    password = serializers.CharField(
+        required=True,
+    )
+
+    class Meta:
+        model = User
+        fields = ['redmine_server','username','password']
+    def validate(self,data):
+
+        token = Token.objects.filter(key=self.context)
+        username = data.get('username', None)
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        if (not token_obj.user.is_superuser):
+            raise serializers.ValidationError("you have not access")
+        
+        return data

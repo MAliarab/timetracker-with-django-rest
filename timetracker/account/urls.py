@@ -4,13 +4,14 @@ from rest_framework import routers
 # router = routers.DefaultRouter()
 # router.register(r'register',views.UserViewSet)
 urlpatterns= [
-    re_path(r'^register',views.UserRegisterView.as_view()),
-    re_path(r'^login',views.UserLoginView.as_view()),
-    re_path(r'^active-user',views.UserActiveView.as_view()),
-    re_path(r'^delete-user',views.UserDeleteView.as_view()),
-    re_path(r'^update-user',views.UserUpdateView.as_view()),
-    re_path(r'^list-users',views.ListUsersView.as_view()),
-    re_path(r'^detail-user',views.UserDetailView.as_view()),
+    re_path(r'^register/$',views.UserRegisterView.as_view()),
+    re_path(r'^login/$',views.UserLoginView.as_view()),
+    re_path(r'^active-user/$',views.UserActiveView.as_view()),
+    re_path(r'^delete-user/$',views.UserDeleteView.as_view()),
+    re_path(r'^update-user/$',views.UserUpdateView.as_view()),
+    re_path(r'^list-users/$',views.ListUsersView.as_view()),
+    re_path(r'^detail-user/$',views.UserDetailView.as_view()),
+    re_path(r'^redmine-integration/$',views.RedmineIntegrationView.as_view()),
 
 ]
 
