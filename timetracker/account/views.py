@@ -3,6 +3,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 # Create your views here.
 import json
+from rest_framework.parsers import MultiPartParser
 from django.forms.models import model_to_dict
 from django.contrib.auth.models import User
 from account.models import UserProfile
@@ -22,7 +23,7 @@ import swagger
 swagger_schema = swagger.SwaggerErrorSchema()
 
 class UserRegisterView(GenericAPIView):
-    
+    parser_classes = (MultiPartParser,)
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
@@ -111,6 +112,7 @@ class UserDeleteView(GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 
 class UserUpdateView(GenericAPIView):
+    parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserUpdateSerializer
     queryset = User.objects.all()
@@ -206,6 +208,7 @@ class UserDetailView(GenericAPIView):
                     user['is_working'] = userprofile.first().is_working
                     user['job_type'] = userprofile.first().job_type
                     user['hours_per_month'] = userprofile.first().hours_per_month
+                    user['avatar'] = userprofile.first().avatar.url if userprofile.first().avatar!=None else None
             return Response(list(users), status=status.HTTP_200_OK) 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 

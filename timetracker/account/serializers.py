@@ -39,9 +39,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    avatar = serializers.ImageField(
+        required=False,
+    )
+
     class Meta:
         model = User
-        fields = ('id',  'username', 'first_name', 'last_name', 'email', 'password','job_type', 'hours_per_month')
+        fields = ('id',  'username', 'first_name', 'last_name', 'email', 'password','job_type', 'hours_per_month','avatar')
 
     def validate(self, data):
         try:
@@ -58,7 +62,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                 user_profile_obj = user_profile.first()
                 user_profile_obj.job_type = data['job_type']
                 user_profile_obj.hours_per_month = data['hours_per_month']
+                user_profile_obj.avatar = data['avatar']
                 user_profile_obj.save()
+
             data['password'] = make_password(data['password'])
         except Exception as e:
             raise serializers.ValidationError("database error")
@@ -214,23 +220,20 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    avatar = serializers.ImageField(
+        required=False,
+    )
+
     class Meta:
         model = User
-        fields = ('username','first_name', 'last_name', 'email', 'password','job_type','hours_per_month')
+        fields = ('username','first_name', 'last_name', 'email', 'password','job_type','hours_per_month','avatar')
 
     def validate(self, data):
 
         token = Token.objects.filter(key=self.context)
         user = User.objects.filter(username=data['username'])
         username = data.get('username',None)
-        first_name = data.get('first_name',None)
-        last_name = data.get('last_name',None)
-        email = data.get('email',None)
-        password = data.get('password',None)
-        job_type = data.get('job_type',None)
-        hours__per_month = data.get('hours__per_month',None)
-
-
+        
         if token.exists():
             token_obj = token.first()
         else:
@@ -240,29 +243,22 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         if user.exists():
             user_obj = user.first()
+            user_profile_obj = UserProfile.objects.get(user=user_obj)
         else:
             raise serializers.ValidationError("username in not valid")
         
-        if first_name:
-            user_obj.first_name = first_name
-        if last_name:
-            user_obj.last_name = last_name
-        if email:
-            user_obj.email = email
-        if password:
-            user_obj.password = password
-        if job_type:
-            user_obj.job_type = job_type
-        if hours__per_month:
-            user_obj.hours__per_month = hours__per_month
-        
+        for key, value in data.items():
+            
+            if key in user_obj.__dict__:
+                setattr(user_obj,key,value)
+            elif key in user_profile_obj.__dict__:
+                setattr(user_profile_obj,key,value)
         try:
             user_obj.save()
+            user_profile_obj.save()
         except Exception as e:
             raise serializers.ValidationError(e)
-        new_data = user_obj.__dict__
-        new_data['token'] = token_obj.key
-        return new_data
+        return data
 
 class ListUsersSerializer(serializers.ModelSerializer):
 

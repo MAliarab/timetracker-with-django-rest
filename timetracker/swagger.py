@@ -19,7 +19,7 @@ def get_list_user_schema():
                 'is_working': openapi.Schema(type=openapi.TYPE_BOOLEAN,title='User working status'),
                 'project': openapi.Schema(type=openapi.TYPE_STRING,title='Project name'),
             },
-            required=['username', 'first_name', 'last_name', 'is_active', 'password', 'is_superuser', 'is_working']
+            required=['username', 'first_name', 'last_name', 'is_active', 'is_superuser', 'is_working']
         )
     )
 
@@ -38,8 +38,9 @@ def get_detail_user_schema():
                 'is_working': openapi.Schema(type=openapi.TYPE_BOOLEAN,title='User working status'),
                 'job_type': openapi.Schema(type=openapi.TYPE_STRING,title='Job type'),
                 'hours_per_month': openapi.Schema(type=openapi.TYPE_STRING,title='Monthly commitment'),
+                'avatar': openapi.Schema(type=openapi.TYPE_STRING,title='Avatar'),
             },
-            required=['username', 'first_name', 'last_name', 'is_active', 'password', 'is_superuser', 'is_working','job_type','hours_per_month']
+            required=['username', 'first_name', 'last_name', 'is_active', 'is_superuser', 'is_working','job_type','hours_per_month','avatar']
         )
     )
 

@@ -9,7 +9,7 @@ class UserProfile(models.Model):
     is_working = models.BooleanField(default=False)
     job_type = models.CharField(default='full_time',max_length=50)
     hours_per_month = models.PositiveIntegerField(default=0)
-
+    avatar = models.ImageField(default=None,null=True, blank=True,upload_to='avatar/')
     def __str__(self):
         return self.user.username
 
