@@ -313,32 +313,19 @@ class UserDetailSerializer(serializers.ModelSerializer):
         return data
 
 
-class RedmineIntegrationSerializer(serializers.ModelSerializer):
+# class RedmineIntegrationSerializer(serializers.HyperlinkedModelSerializer):
 
-    redmine_server = serializers.CharField(
-        required=True,
-    )
+#     class Meta:
+#         model = User
+#     def validate(self,data):
 
-    username = serializers.CharField(
-        required=True,
-    )
-
-    password = serializers.CharField(
-        required=True,
-    )
-
-    class Meta:
-        model = User
-        fields = ['redmine_server','username','password']
-    def validate(self,data):
-
-        token = Token.objects.filter(key=self.context)
-        username = data.get('username', None)
-        if token.exists():
-            token_obj = token.first()
-        else:
-            raise serializers.ValidationError("token is not valid")
-        if (not token_obj.user.is_superuser):
-            raise serializers.ValidationError("you have not access")
+#         token = Token.objects.filter(key=self.context)
+#         username = data.get('username', None)
+#         if token.exists():
+#             token_obj = token.first()
+#         else:
+#             raise serializers.ValidationError("token is not valid")
+#         if (not token_obj.user.is_superuser):
+#             raise serializers.ValidationError("you have not access")
         
-        return data
+#         return data

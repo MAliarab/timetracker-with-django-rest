@@ -24,7 +24,7 @@ schema_view = get_schema_view(
    openapi.Info(
       title="Time Tracker API Doc",
       default_version='v1',
-      description="API documentation for TIME TRACKER",
+      description="API documentation for TIME TRACKER (Token Authentication example: (pass in header)-> 'Authorization: Token [token]'",
       terms_of_service="https://www.google.com/policies/terms/",
       contact=openapi.Contact(email="contact@snippets.local"),
       license=openapi.License(name="BSD License"),

@@ -135,9 +135,9 @@ MEDIA_URL = '/media/' # 'http://myhost:port/media/'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         
+        'rest_framework.authentication.TokenAuthentication',
         # 'rest_framework.authentication.BasicAuthentication',
         # 'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
         # 'authentication.ExpiringTokenAuthentication'
         
     ],
@@ -167,3 +167,8 @@ SWAGGER_SETTINGS = {
 }
 
 TOKEN_EXPIRED_AFTER_SECONDS = 86400
+
+REDMINE_SETTINGS = {
+    'ADMIN_API_KEY' : '33b8eb751323fee6466baa03f8824f6963171f88',
+    'SERVER': 'http://pms.zhinogroup.com/redmine'
+}

@@ -17,6 +17,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.authtoken.models import Token
 from rest_framework.exceptions import PermissionDenied
 from redminelib import Redmine
+from django.conf import settings
 import swagger
 swagger_schema = swagger.SwaggerErrorSchema()
 
@@ -211,35 +212,35 @@ class UserDetailView(GenericAPIView):
 
 class RedmineIntegrationView(GenericAPIView):
 
-    serializer_class = RedmineIntegrationSerializer
     permission_classes = [permissions.IsAdminUser]
     queryset = User.objects.all()
     @swagger_auto_schema(
+        operation_description= 'no parameters needed - "not created users" list will return - superuser access needed',
         responses={
-            200: openapi.Response("Project update", swagger.get_update_project_schema()),
-            400: openapi.Response("Bad Request", swagger_schema.get_schema('update-project')),
+            200: "Integrated",
             401: 'Unauthorized',
             403: 'Forbidden'
         },
     )
     
     def post(self, request):
-        serializer = self.serializer_class(data=request.data,context=request.auth.key)
-        if serializer.is_valid(raise_exception=True):
-            redmine = Redmine(request.data['redmine_server'],username=request.data['username'],password=request.data['password'])
-            users = redmine.user.all()
-            for user in users:
-                if not User.objects.filter(username=user.login).exists() and not User.objects.filter(email=user.mail).exists():
-                    user_obj = User.objects.create_user(
-                        username=user.login,
-                        first_name=user.firstname,
-                        last_name=user.lastname,
-                        email=user.mail,
-                        password=12345678,
-                        is_active=False,
-                    )
-                
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        redmine = Redmine(settings.REDMINE_SETTINGS['SERVER'],key=settings.REDMINE_SETTINGS['ADMIN_API_KEY'])
+        users = redmine.user.all()
+        not_created_users = []
+        for user in users:
+            if not User.objects.filter(username=user.login).exists() and not User.objects.filter(email=user.mail).exists():
+                user_obj = User.objects.create_user(
+                    username=user.login,
+                    first_name=user.firstname,
+                    last_name=user.lastname,
+                    email=user.mail,
+                    password='12345678',
+                    is_active=False,
+                )
+            else:
+                not_created_users.append({'username/login':user.login,'mail':user.mail, 'first_name':user.firstname, 'last_name':user.lastname})
+            
+        return Response(not_created_users, status=status.HTTP_200_OK)
 
 
