@@ -111,7 +111,6 @@ def get_list_project_schema():
         )
     )
 
-
 def get_list_time_schema():
     return openapi.Schema(
         "List Of Projects",

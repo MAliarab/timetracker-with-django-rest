@@ -4,10 +4,16 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from rest_framework.validators import UniqueValidator
 import datetime, pytz, jdatetime
+from redminelib import Redmine
+from django.conf import settings
 
 class TimeRcordingManualSerializer(serializers.ModelSerializer):
 
-    project = serializers.CharField(
+    project_id = serializers.IntegerField(
+        required=True,
+    )
+
+    issue_id = serializers.IntegerField(
         required=True,
     )
 
@@ -28,7 +34,7 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Time
-        fields = ['project', 'start_time', 'end_time','description']
+        fields = ['project_id', 'issue_id', 'start_time', 'end_time','description']
 
     
     def validate(self, data):
@@ -37,17 +43,15 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
             key=self.context
             )
         project = Project.objects.filter(
-            name=data.get('project', None)
+            id=data.get('project_id', None)
         )
-
-        
+        issue_id = data.get('issue_id',None)
         start_time = data.get('start_time', None)
         end_time = data.get('end_time', None)
         description = data.get('description', None)
         duration = end_time - start_time
         tz = pytz.timezone('Asia/Tehran')
         date = datetime.datetime.now(tz).date()
-
         
         if token.exists():
             token_obj = token.first()
@@ -61,6 +65,13 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
         if not ProjectUser.objects.filter(project=project_obj, user=token_obj.user).exists():
             raise serializers.ValidationError("user is not a member of the project")
         
+        redmine = Redmine(settings.REDMINE_SETTINGS['SERVER'],key=settings.REDMINE_SETTINGS['ADMIN_API_KEY'])
+        issue = redmine.user.filter(issue_id=issue_id)
+        
+        if len(issue)>0:
+            issue_obj = issue[0]
+        else:
+            raise serializers.ValidationError("issue_id is not valid")
 
         try:
             Time.objects.create(
@@ -70,7 +81,8 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
                 start_time=(start_time),
                 end_time=(end_time),
                 duration=duration,
-                description=description
+                description=description,
+                issue_id= issue_obj.id
             )
         except Exception as e:
             raise serializers.ValidationError(e)
@@ -79,7 +91,7 @@ class TimeRcordingManualSerializer(serializers.ModelSerializer):
 
 class TimeRcordingAutoSerializer(serializers.ModelSerializer):
 
-    project = serializers.CharField(
+    project_id = serializers.IntegerField(
         required=True,
     )
 
@@ -91,7 +103,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Time
-        fields = ['project','start_time']
+        fields = ['project_id','start_time']
 
     
     def validate(self, data):
@@ -100,7 +112,7 @@ class TimeRcordingAutoSerializer(serializers.ModelSerializer):
             key= self.context
             )
         project = Project.objects.filter(
-            name=data.get('project', None)
+            id=data.get('project_id', None)
         )
 
         tz = pytz.timezone('Asia/Tehran')
@@ -310,16 +322,21 @@ class TimeRecordingStopSerializer(serializers.ModelSerializer):
         required=True,
     )
 
+    issue_id = serializers.IntegerField(
+        required=True,
+    )
 
     class Meta:
         model = Time
-        fields = ['description']
+        fields = ['description','issue_id']
 
     def validate(self, data):
 
         token = Token.objects.filter(key=self.context)
         description = data.get('description')
+        issue_id = data.get('issue_id',None)
         tz = pytz.timezone("Asia/Tehran")
+        
         if token.exists():
             token_obj = token.first()
         else:
@@ -330,11 +347,20 @@ class TimeRecordingStopSerializer(serializers.ModelSerializer):
             time_obj = time.first()
         else:
             raise serializers.ValidationError("there is no incomplete time for this user")
+
+        redmine = Redmine(settings.REDMINE_SETTINGS['SERVER'],key=settings.REDMINE_SETTINGS['ADMIN_API_KEY'])
+        issue = redmine.issue.filter(issue_id=issue_id)
+        if len(issue)>0:
+            issue_obj = issue[0]
+        else:
+            raise serializers.ValidationError("issue_id is not valid")
+
         try:
             now_time =  datetime.datetime.now()
             time_obj.end_time = now_time
             time_obj.duration = now_time - time_obj.start_time.astimezone(tz).replace(tzinfo=None)
             time_obj.description = description
+            time_obj.issue_id = issue_obj.id
             time_obj.save()
         except Exception as e:
             raise serializers.ValidationError(e)
@@ -656,4 +682,28 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
         return data
 
+class ListIssueSerializer(serializers.ModelSerializer):
+
+    username = serializers.CharField(
+        required=False,
+    )
+    
+
+    class Meta:
+        model = User
+        fields = ['username',]
+
+    def validate(self,data):
+        username = data.get('username',None) 
+        token = Token.objects.filter(key=self.context)
+
+        if token.exists():
+            token_obj = token.first()
+        else:
+            raise serializers.ValidationError("token is not valid")
+        
+        if (not token_obj.user.is_superuser) and (not token_obj.user.username==username):
+            raise serializers.ValidationError("you have not access")
+        
+        return data
 

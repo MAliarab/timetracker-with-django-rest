@@ -1,16 +1,14 @@
-from datetime import tzinfo
-from django.shortcuts import render
 from rest_framework.generics import GenericAPIView
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from record.models import Project, ProjectUser, Time
 from django.contrib.auth.models import User
-import jdatetime
 import pytz
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from rest_framework.parsers import FileUploadParser
-# Create your views here.
+from rest_framework.authtoken.models import Token
+from redminelib import Redmine
+from django.conf import settings
 from record.serializers import *
 import swagger
 swagger_schema = swagger.SwaggerErrorSchema()
@@ -331,6 +329,54 @@ class ProjectDetailView(GenericAPIView):
             return Response(projects, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class ListIssueView(GenericAPIView):
 
+    serializer_class = ListIssueSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Time.objects.all()
+    @swagger_auto_schema(
+        responses={
+            200: openapi.Response('Time Deleted' , ListIssueSerializer),
+            400: 'Bad Request',
+            401: 'Unauthorized'
+        },
+    )
 
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data,context=request.auth.key)
+        if serializer.is_valid(raise_exception=True):
+            username = request.data.get('username',None)
+            token_obj = Token.objects.get(key=request.auth.key)
+            result = []
+            redmine = Redmine(settings.REDMINE_SETTINGS['SERVER'],key=settings.REDMINE_SETTINGS['ADMIN_API_KEY'])
+            if username:
+                user = redmine.user.filter(name=username)
+                if len(user)>0:
+                    issues = user[0].issues
+                    for issue in issues:
+                        result.append({'subject':issue.subject,'id':issue.id})
+            else:
+                if token_obj.user.is_superuser:
+                    issues = redmine.issue.all()
+                    for issue in issues:
+                        print({'id':issue.id,'subject':issue.subject})
+                        result.append({'id':issue.id,'subject':issue.subject})
+            return Response(result, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# class TimeIntegrationView(GenericAPIView):
+#     permission_classes = [permissions.IsAdminUser]
+#     queryset = Project.objects.all()
+#     @swagger_auto_schema(
+#         responses={
+#             200: openapi.Response("Project update", swagger.get_update_project_schema()),
+#             400: openapi.Response("Bad Request", swagger_schema.get_schema('update-project')),
+#             401: 'Unauthorized',
+#             403: 'Forbidden'
+#         },
+#     )
+    
+#     def get(self, request):
+
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+        

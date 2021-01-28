@@ -14,6 +14,7 @@ urlpatterns= [
     re_path(r'^delete-project/$',views.ProjectDeleteView.as_view(), name='delete project'),
     re_path(r'^update-project/$',views.ProjectUpdateView.as_view(), name='update project'),
     re_path(r'^detail-project/$',views.ProjectDetailView.as_view(), name='detail of project'),
+    re_path(r'^issues/$',views.ListIssueView.as_view(), name='list of issues'),
 
     
 ]

@@ -172,3 +172,6 @@ REDMINE_SETTINGS = {
     'ADMIN_API_KEY' : '33b8eb751323fee6466baa03f8824f6963171f88',
     'SERVER': 'http://pms.zhinogroup.com/redmine'
 }
+
+
+

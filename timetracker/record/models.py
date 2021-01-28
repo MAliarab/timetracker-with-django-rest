@@ -18,12 +18,13 @@ class Project(models.Model):
     avatar = models.ImageField(null=True, blank=True,default=None,upload_to='avatar/')
     budget = models.PositiveIntegerField(null=True, blank=True,default=None)
     def __str__(self):
-        return self.name
+        return str(self.id)+"_"+self.name
 
 class Time(models.Model):
 
     project = models.ForeignKey(Project,on_delete=models.CASCADE)
     user = models.ForeignKey(User,on_delete=models.CASCADE)
+    issue_id = models.IntegerField(null=True, blank=True, default=None)
     date = models.DateField()
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
